@@ -1,18 +1,21 @@
 import streamlit as st
-from google import genai
+import google.generativeai as genai
 from pypdf import PdfReader
 import os, re
 
+# ---------------- PAGE CONFIG ----------------
 st.set_page_config(
     page_title="PDF READER BOT",
     page_icon="📄",
     layout="centered"
 )
 
+# ---------------- GEMINI SETUP ----------------
 API_KEY = os.getenv("GOOGLE_API_KEY")
-client = genai.Client(api_key=API_KEY)
+genai.configure(api_key=API_KEY)
+model = genai.GenerativeModel("gemini-1.5-flash")
 
-
+# ---------------- PDF FUNCTIONS ----------------
 @st.cache_data
 def read_pdf(path):
     reader = PdfReader(path)
@@ -32,35 +35,36 @@ def get_relevant_chunks(question, chunks, top_k=3):
 
     for chunk in chunks:
         c_words = set(re.findall(r"\w+", chunk.lower()))
-        score = len(q_words & c_words)
-        scored.append((score, chunk))
+        scored.append((len(q_words & c_words), chunk))
 
     scored.sort(reverse=True)
     return [c for s, c in scored[:top_k] if s > 0]
 
-
+# ---------------- LOAD PDF ----------------
 pdf_text = read_pdf("sample.pdf")
 chunks = chunk_text(pdf_text)
 
+# ---------------- UI ----------------
 st.title("📄 PDF READER BOT")
 st.caption("Ask questions strictly from the uploaded PDF")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Show chat history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
+# Chat input
 if prompt := st.chat_input("Ask something from the PDF..."):
 
-    st.session_state.messages.append(
-        {"role": "user", "content": prompt}
-    )
+    # User message
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    
+    # Assistant message
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             relevant = get_relevant_chunks(prompt, chunks)
@@ -79,11 +83,7 @@ Context:
 Question:
 {prompt}
 """
-
-                response = client.models.generate_content(
-                    model="models/gemini-2.5-flash",
-                    contents=prompt_text
-                )
+                response = model.generate_content(prompt_text)
                 answer = response.text
 
             st.markdown(answer)
