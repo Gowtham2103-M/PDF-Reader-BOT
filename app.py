@@ -46,7 +46,7 @@ chunks = chunk_text(pdf_text)
 
 # ---------------- UI ----------------
 st.title("📄 PDF READER BOT")
-st.caption("Ask questions strictly from the uploaded PDF")
+st.caption("Ask questions strictly from cloud computing")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -91,3 +91,4 @@ Question:
     st.session_state.messages.append(
         {"role": "assistant", "content": answer}
     )
+
