@@ -1,8 +1,7 @@
 import streamlit as st
 from google import genai
 from pypdf import PdfReader
-import os
-import re
+import os, re
 from difflib import SequenceMatcher
 
 # ---------------- PAGE CONFIG ----------------
@@ -16,7 +15,7 @@ st.set_page_config(
 API_KEY = os.getenv("GOOGLE_API_KEY")
 
 if not API_KEY:
-    st.error("❌ GOOGLE_API_KEY not found in environment variables")
+    st.error("❌ GOOGLE_API_KEY not found")
     st.stop()
 
 client = genai.Client(api_key=API_KEY)
@@ -25,17 +24,14 @@ client = genai.Client(api_key=API_KEY)
 def similar(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
-
 @st.cache_data(show_spinner=False)
 def read_pdf(uploaded_file):
     reader = PdfReader(uploaded_file)
     text = ""
     for page in reader.pages:
-        extracted = page.extract_text()
-        if extracted:
-            text += extracted + "\n"
+        if page.extract_text():
+            text += page.extract_text() + "\n"
     return text
-
 
 def chunk_text(text, chunk_size=400):
     words = text.split()
@@ -43,7 +39,6 @@ def chunk_text(text, chunk_size=400):
         " ".join(words[i:i + chunk_size])
         for i in range(0, len(words), chunk_size)
     ]
-
 
 def get_relevant_chunks(question, chunks, top_k=3):
     q_words = re.findall(r"\w+", question.lower())
@@ -67,17 +62,6 @@ def get_relevant_chunks(question, chunks, top_k=3):
     scored.sort(key=lambda x: x[0], reverse=True)
     return [c for s, c in scored[:top_k] if s > 0]
 
-
-def extract_headings(text):
-    lines = text.split("\n")
-    headings = [
-        line.strip()
-        for line in lines
-        if line.strip().isupper() and len(line.strip()) > 5
-    ]
-    return headings[:20]
-
-
 # ---------------- UI ----------------
 st.title("📄 PDF READER BOT")
 st.caption("Ask questions strictly from the uploaded PDF")
@@ -90,12 +74,11 @@ uploaded_pdf = st.file_uploader(
 if uploaded_pdf:
     with st.spinner("Reading PDF..."):
         pdf_text = read_pdf(uploaded_pdf)
+        chunks = chunk_text(pdf_text)
 
     if not pdf_text.strip():
-        st.error("❌ No readable text found in the PDF")
+        st.error("❌ No readable text found in PDF")
         st.stop()
-
-    chunks = chunk_text(pdf_text)
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -116,28 +99,17 @@ if uploaded_pdf:
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
 
-                # -------- HEADING MODE (NO GEMINI) --------
-                if "heading" in prompt.lower():
-                    headings = extract_headings(pdf_text)
-                    answer = (
-                        "\n".join(f"• {h}" for h in headings)
-                        if headings else
-                        "❌ No headings found in PDF"
-                    )
+                relevant = get_relevant_chunks(prompt, chunks)
 
-                # -------- NORMAL Q&A MODE --------
+                if not relevant:
+                    answer = "❌ Not available in PDF"
                 else:
-                    relevant = get_relevant_chunks(prompt, chunks)
+                    context = "\n".join(relevant)
 
-                    if not relevant:
-                        answer = "❌ Not available in PDF"
-                    else:
-                        context = "\n".join(relevant)
+                    # 🔒 LIMIT CONTEXT SIZE (IMPORTANT)
+                    context = context[:3500]
 
-                        # LIMIT CONTEXT SIZE (IMPORTANT)
-                        context = context[:3500]
-
-                        prompt_text = f"""
+                    prompt_text = f"""
 Answer ONLY using the context below.
 If the answer is not supported by the context, say: Not available in PDF.
 
@@ -148,12 +120,12 @@ Question:
 {prompt}
 """
 
-                        response = client.models.generate_content(
-                            model="models/gemini-1.5-flash",
-                            contents=[prompt_text]
-                        )
+                    response = client.models.generate_content(
+                        model="models/gemini-2.5-flash",
+                        contents=[prompt_text]
+                    )
 
-                        answer = response.text
+                    answer = response.text
 
                 st.markdown(answer)
 
@@ -163,4 +135,3 @@ Question:
 
 else:
     st.info("👆 Upload a PDF to start asking questions")
-
