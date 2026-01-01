@@ -12,8 +12,8 @@ st.set_page_config(
 )
 
 # ---------------- API KEY ----------------
-API_KEY = os.getenv("GOOGLE_API_KEY")
-
+API_KEY = st.secrets.get("GOOGLE_API_KEY")
+st.write("API key loaded:", bool(API_KEY))
 if not API_KEY:
     st.error("❌ GOOGLE_API_KEY not found in environment variables")
     st.stop()
@@ -135,3 +135,4 @@ Question:
 
 else:
     st.info("👆 Upload a PDF to start asking questions")
+
