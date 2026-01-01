@@ -13,7 +13,7 @@ st.set_page_config(
 
 # ---------------- API KEY ----------------
 API_KEY = st.secrets.get("GOOGLE_API_KEY")
-st.write("API key last 4 chars:", API_KEY[-4:])
+st.write("Calling Gemini...")
 
 if not API_KEY:
     st.error("❌ GOOGLE_API_KEY not found in environment variables")
@@ -136,5 +136,6 @@ Question:
 
 else:
     st.info("👆 Upload a PDF to start asking questions")
+
 
 
