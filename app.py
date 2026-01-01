@@ -3,6 +3,9 @@ from google import genai
 from pypdf import PdfReader
 import os, re
 from difflib import SequenceMatcher
+import time
+time.sleep(10)
+
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
@@ -13,7 +16,7 @@ st.set_page_config(
 
 # ---------------- API KEY ----------------
 API_KEY = st.secrets.get("GOOGLE_API_KEY")
-st.write("Calling Gemini...")
+
 
 if not API_KEY:
     st.error("❌ GOOGLE_API_KEY not found in environment variables")
@@ -136,6 +139,7 @@ Question:
 
 else:
     st.info("👆 Upload a PDF to start asking questions")
+
 
 
 
