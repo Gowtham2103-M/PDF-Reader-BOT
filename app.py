@@ -15,7 +15,7 @@ st.set_page_config(
 API_KEY = os.getenv("GOOGLE_API_KEY")
 
 if not API_KEY:
-    st.error("❌ GOOGLE_API_KEY not found")
+    st.error("❌ GOOGLE_API_KEY not found in environment variables")
     st.stop()
 
 client = genai.Client(api_key=API_KEY)
@@ -106,11 +106,9 @@ if uploaded_pdf:
                 else:
                     context = "\n".join(relevant)
 
-                    # 🔒 LIMIT CONTEXT SIZE (IMPORTANT)
-                    context = context[:3500]
-
                     prompt_text = f"""
 Answer ONLY using the context below.
+You may answer YES or NO if the context clearly supports it.
 If the answer is not supported by the context, say: Not available in PDF.
 
 Context:
@@ -120,12 +118,14 @@ Question:
 {prompt}
 """
 
-                    response = client.models.generate_content(
-                        model="models/gemini-2.5-flash",
-                        contents=[prompt_text]
-                    )
-
-                    answer = response.text
+                    try:
+                        response = client.models.generate_content(
+                            model="models/gemini-1.5-flash",
+                            contents=[prompt_text]
+                        )
+                        answer = response.text
+                    except Exception:
+                        answer = "⚠️ API limit reached. Please wait and try again."
 
                 st.markdown(answer)
 
