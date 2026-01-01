@@ -149,7 +149,7 @@ Question:
 """
 
                         response = client.models.generate_content(
-                            model="models/gemini-2.5-flash",
+                            model="models/gemini-1.5-flash",
                             contents=[prompt_text]
                         )
 
@@ -163,3 +163,4 @@ Question:
 
 else:
     st.info("👆 Upload a PDF to start asking questions")
+
