@@ -129,7 +129,7 @@ Question:
                         )
                         answer = response.text
                     except Exception:
-                        answer = "⚠️ API limit reached. Please wait and try again."
+                        answer = "⚠️ limit reached. Please try again later."
 
                 st.markdown(answer)
 
@@ -139,6 +139,7 @@ Question:
 
 else:
     st.info("👆 Upload a PDF to start asking questions")
+
 
 
 
